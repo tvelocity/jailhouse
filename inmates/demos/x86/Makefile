@@ -13,7 +13,8 @@
 include $(INMATES_LIB)/Makefile.lib
 
 INMATES := tiny-demo.bin apic-demo.bin ioapic-demo.bin 32-bit-demo.bin \
-	pci-demo.bin e1000-demo.bin ivshmem-demo.bin smp-demo.bin
+	pci-demo.bin e1000-demo.bin ivshmem-demo.bin smp-demo.bin \
+	linux-demo.bin
 
 tiny-demo-y	:= tiny-demo.o
 apic-demo-y	:= apic-demo.o
@@ -25,5 +26,8 @@ smp-demo-y	:= smp-demo.o
 
 $(eval $(call DECLARE_32_BIT,32-bit-demo))
 32-bit-demo-y	:= 32-bit-demo.o
+
+CFLAGS_linux-demo.o := -I/usr/include
+linux-demo-y	:= linux-demo.o
 
 $(eval $(call DECLARE_TARGETS,$(INMATES)))
