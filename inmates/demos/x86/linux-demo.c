@@ -25,7 +25,9 @@
 #define CMD_LINE_ADDR		0x020000UL
 #define IMAGE_LOAD_ADDR		0x200000UL
 
-static const char cmd_line[] = "earlyprintk=ttyS1";
+static const char cmd_line[] =
+	"earlyprintk=ttyS1 memmap=1M@0 memmap=0x3aff000@0x200000 "
+	"console=ttyS1 pmtmr=0x608";
 
 void inmate_main(void)
 {
