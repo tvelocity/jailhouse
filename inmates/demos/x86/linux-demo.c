@@ -56,7 +56,11 @@ void inmate_main(void)
 	prot_image_size = header->syssize * 16;
 	printk("Image size:\t%x\n", prot_image_size);
 
+	memset(boot_params, 0, sizeof(*boot_params));
 	memcpy(&boot_params->hdr, header, 0x202 + (header->jump >> 8));
+
+	boot_params->hdr.type_of_loader = 0xff;
+
 	boot_params->hdr.cmd_line_ptr = (unsigned long)cmd_line;
 
 	kernel = (void *)(unsigned long)header->kernel_alignment;
