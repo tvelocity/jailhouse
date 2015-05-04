@@ -20,8 +20,9 @@
 struct {
 	struct jailhouse_cell_desc cell;
 	__u64 cpus[1];
-	struct jailhouse_memory mem_regions[3];
+	struct jailhouse_memory mem_regions[4];
 	__u8 pio_bitmap[0x2000];
+	struct jailhouse_pci_device pci_devices[1];
 } __attribute__((packed)) config = {
 	.cell = {
 		.name = "linux-x86-demo",
@@ -31,7 +32,7 @@ struct {
 		.num_memory_regions = ARRAY_SIZE(config.mem_regions),
 		.num_irqchips = 0,
 		.pio_bitmap_size = ARRAY_SIZE(config.pio_bitmap),
-		.num_pci_devices = 0,
+		.num_pci_devices = 1,
 	},
 
 	.cpus = {
@@ -59,6 +60,14 @@ struct {
 			.flags = JAILHOUSE_MEM_READ | JAILHOUSE_MEM_WRITE |
 				JAILHOUSE_MEM_EXECUTE | JAILHOUSE_MEM_LOADABLE,
 		},
+		/* IVSHMEM shared memory region */
+		{
+			.phys_start = 0x3f1ff000,
+			.virt_start = 0x3f1ff000,
+			.size = 0x1000,
+			.flags = JAILHOUSE_MEM_READ | JAILHOUSE_MEM_WRITE |
+				JAILHOUSE_MEM_ROOTSHARED,
+		},
 	},
 
 	.pio_bitmap = {
@@ -68,5 +77,18 @@ struct {
 		[0xe010/8 ... 0xe017/8] = 0, /* OXPCIe952 serial1 */
 		[0xe018/8 ... 0xffff/8] = -1,
 	},
+
+	.pci_devices = {
+		{
+			.type = JAILHOUSE_PCI_TYPE_IVSHMEM,
+			.domain = 0x0,
+			.bdf = (0x1<<3),
+			.bar_mask = {
+				0xffffff00, 0xffffffff, 0x00000000,
+				0x00000000, 0xffffffe0, 0xffffffff,
+			},
+			.shmem_region = 3,
+			.num_msix_vectors = 1,
+		},
 	},
 };
