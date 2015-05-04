@@ -63,6 +63,9 @@ void inmate_main(void)
 
 	boot_params->hdr.cmd_line_ptr = (unsigned long)cmd_line;
 
+	boot_params->hdr.ramdisk_image = 0x600000;
+	boot_params->hdr.ramdisk_size = 2352271;
+
 	kernel = (void *)(unsigned long)header->kernel_alignment;
 	memcpy(kernel, prot_image, prot_image_size);
 
