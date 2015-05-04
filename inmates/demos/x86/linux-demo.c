@@ -16,9 +16,9 @@
 #include <asm/bootparam.h>
 
 #ifdef CONFIG_UART_OXPCIE952
-#define UART_BASE		0xe000
+#define UART_BASE		0xe010
 #else
-#define UART_BASE		0x2f8
+#define UART_BASE		0x3f8
 #endif
 
 #define ZERO_PAGE_ADDR		0x010000UL
@@ -26,8 +26,8 @@
 #define IMAGE_LOAD_ADDR		0x200000UL
 
 static const char cmd_line[] =
-	"earlyprintk=ttyS1 memmap=1M@0 memmap=0x3aff000@0x200000 "
-	"console=ttyS1 pmtmr=0x608";
+	"earlyprintk=ttyS0 memmap=1M@0 memmap=0x3aff000@0x200000 "
+	"console=ttyS0 pmtmr=0x608";
 
 void inmate_main(void)
 {
