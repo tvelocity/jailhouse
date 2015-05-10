@@ -20,6 +20,7 @@ TARGETS := jailhouse
 
 INST_TARGETS := $(TARGETS)
 HELPERS := \
+	jailhouse-cell-linux \
 	jailhouse-cell-list \
 	jailhouse-cell-stats \
 	jailhouse-config-create
@@ -36,8 +37,8 @@ else
 	TARGETS += no_python_mako
 endif
 
-define patch_datadir_var
-	sed -i 's|^datadir = None|datadir = "$(datadir)"|' $1
+define patch_dirvar
+	sed -i 's|^$1 = None|$1 = "$($1)"|' $2
 endef
 
 # no recipes above this one (also no includes)
@@ -58,7 +59,8 @@ install-bin: $(INST_TARGETS) $(DESTDIR)$(sbindir)
 
 install-libexec: $(HELPERS) $(DESTDIR)$(libexecdir)/jailhouse
 	$(INSTALL_PROGRAM) $^
-	$(Q)$(call patch_datadir_var, $(lastword $^)/jailhouse-config-create)
+	$(Q)$(call patch_dirvar,libexecdir,$(lastword $^)/jailhouse-cell-linux)
+	$(Q)$(call patch_dirvar,datadir,$(lastword $^)/jailhouse-config-create)
 
 install-data: $(TEMPLATES) $(DESTDIR)$(datadir)/jailhouse
 	$(INSTALL_DATA) $^
