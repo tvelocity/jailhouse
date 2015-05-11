@@ -24,6 +24,41 @@ PARAMS_BASE = 0xf5000
 libexecdir = None
 
 
+class MemoryRegion:
+    JAILHOUSE_MEM_WRITE = 0x0002
+    JAILHOUSE_MEM_IO = 0x0010
+    JAILHOUSE_MEM_COMM_REGION = 0x0020
+    JAILHOUSE_MEM_ROOTSHARED = 0x0080
+
+    E820_RAM = 1
+    E820_RESERVED = 2
+
+    _REGION_FORMAT = 'QQQQ'
+    SIZE = struct.calcsize(_REGION_FORMAT)
+
+    def __init__(self, region_struct):
+        (self.phys_start,
+         self.virt_start,
+         self.size,
+         self.flags) = \
+            struct.unpack_from(MemoryRegion._REGION_FORMAT, region_struct)
+
+    def is_ram(self):
+        return ((self.flags & (MemoryRegion.JAILHOUSE_MEM_WRITE |
+                               MemoryRegion.JAILHOUSE_MEM_IO |
+                               MemoryRegion.JAILHOUSE_MEM_COMM_REGION |
+                               MemoryRegion.JAILHOUSE_MEM_ROOTSHARED)) ==
+                MemoryRegion.JAILHOUSE_MEM_WRITE)
+
+    def is_comm_region(self):
+        return (self.flags & MemoryRegion.JAILHOUSE_MEM_COMM_REGION) != 0
+
+    def as_e820(self):
+        return struct.pack('QQI', self.virt_start, self.size,
+                           MemoryRegion.E820_RAM if self.is_ram() else
+                           MemoryRegion.E820_RESERVED)
+
+
 class Config:
     _HEADER_FORMAT = '32sIIIIIII'
 
@@ -40,6 +75,14 @@ class Config:
          self.num_pci_caps) = \
             struct.unpack_from(Config._HEADER_FORMAT, self.data)
         self.name = self.name.strip('\0')
+
+        memregion_offs = struct.calcsize(Config._HEADER_FORMAT) + \
+            self.cpu_set_size
+        self.memory_regions = []
+        for n in range(self.num_memory_regions):
+            self.memory_regions.append(
+                MemoryRegion(self.data[memregion_offs:]))
+            memregion_offs += MemoryRegion.SIZE
 
 
 class SetupHeader:
@@ -94,9 +137,22 @@ class ZeroPage:
             self.setup_header.ramdisk_image = 0
             self.setup_header.ramdisk_size = 0
 
+        self.e820_entries = []
+        for region in config.memory_regions:
+            if region.is_ram() or region.is_comm_region():
+                if len(self.e820_entries) >= 128:
+                    print("Too many memory regions", file=sys.stderr)
+                    exit(1)
+                self.e820_entries.append(region)
+
     def get_data(self):
-        return bytearray(0x1f0) + self.setup_header.get_data() + \
-            bytearray(0x1000 - 0x1f0 - self.setup_header.size)
+        data = bytearray(0x1e8) + \
+            struct.pack('B', len(self.e820_entries)) + \
+            bytearray(0x1f0 - 0x1e9) + self.setup_header.get_data() + \
+            bytearray(0x2d0 - 0x1f0 - self.setup_header.size)
+        for region in self.e820_entries:
+            data += region.as_e820()
+        return data + bytearray(0x1000 - len(data))
 
 
 class JailhouseCell:
