@@ -86,7 +86,7 @@ class Config:
 
 
 class SetupHeader:
-    _HEADER_FORMAT = 'xB2xI8xH14xB7xII8xI4xI'
+    _HEADER_FORMAT = 'xB2xI8xH14xB7xII8xI4xI28xQ'
 
     def __init__(self, kernel):
         kernel.seek(0x1f0)
@@ -98,7 +98,8 @@ class SetupHeader:
          self.ramdisk_image,
          self.ramdisk_size,
          self.cmd_line_ptr,
-         self.kernel_alignment) = \
+         self.kernel_alignment,
+         self.setup_data) = \
             struct.unpack(SetupHeader._HEADER_FORMAT, kernel.read(parse_size))
 
         self.size = 0x202 + (self.jump >> 8) - 0x1f0
@@ -110,7 +111,7 @@ class SetupHeader:
                          self.setup_sects, self.syssize, self.jump,
                          self.type_of_loader, self.ramdisk_image,
                          self.ramdisk_size, self.cmd_line_ptr,
-                         self.kernel_alignment)
+                         self.kernel_alignment, self.setup_data)
         return self.data
 
 
@@ -125,7 +126,6 @@ class ZeroPage:
             prot_image_offs
 
         self.setup_header.type_of_loader = 0xff
-        self.setup_header.cmd_line_ptr = PARAMS_BASE + 0x1000
 
         if initrd:
             kernel_size = os.fstat(kernel.fileno()).st_size
@@ -191,6 +191,10 @@ class JailhouseCell:
         fcntl.ioctl(self.dev, JailhouseCell.JAILHOUSE_CELL_START, start)
 
 
+def gen_setup_data(config):
+    return struct.pack('8x4sI2x', 'JLHS', 2)
+
+
 # pretend to be part of the jailhouse tool
 sys.argv[0] = sys.argv[0].replace('-', ' ')
 
@@ -219,7 +223,14 @@ config = Config(args.config)
 
 zero_page = ZeroPage(args.kernel, args.initrd, config)
 
-params = zero_page.get_data() + (args.cmdline if args.cmdline else '') + '\0'
+setup_data = gen_setup_data(config)
+
+zero_page.setup_header.setup_data = PARAMS_BASE + 0x1000
+zero_page.setup_header.cmd_line_ptr = \
+    zero_page.setup_header.setup_data + len(setup_data)
+
+params = zero_page.get_data() + setup_data + \
+    (args.cmdline if args.cmdline else '') + '\0'
 
 
 if args.write_params:
