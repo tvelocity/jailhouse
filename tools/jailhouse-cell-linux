@@ -25,7 +25,10 @@ libexecdir = None
 
 
 class MemoryRegion:
+    JAILHOUSE_MEM_READ = 0x0001
     JAILHOUSE_MEM_WRITE = 0x0002
+    JAILHOUSE_MEM_EXECUTE = 0x0004
+    JAILHOUSE_MEM_DMA = 0x0008
     JAILHOUSE_MEM_IO = 0x0010
     JAILHOUSE_MEM_COMM_REGION = 0x0020
     JAILHOUSE_MEM_ROOTSHARED = 0x0080
@@ -44,11 +47,17 @@ class MemoryRegion:
             struct.unpack_from(MemoryRegion._REGION_FORMAT, region_struct)
 
     def is_ram(self):
-        return ((self.flags & (MemoryRegion.JAILHOUSE_MEM_WRITE |
+        return ((self.flags & (MemoryRegion.JAILHOUSE_MEM_READ |
+                               MemoryRegion.JAILHOUSE_MEM_WRITE |
+                               MemoryRegion.JAILHOUSE_MEM_EXECUTE |
+                               MemoryRegion.JAILHOUSE_MEM_DMA |
                                MemoryRegion.JAILHOUSE_MEM_IO |
                                MemoryRegion.JAILHOUSE_MEM_COMM_REGION |
                                MemoryRegion.JAILHOUSE_MEM_ROOTSHARED)) ==
-                MemoryRegion.JAILHOUSE_MEM_WRITE)
+                (MemoryRegion.JAILHOUSE_MEM_READ |
+                 MemoryRegion.JAILHOUSE_MEM_WRITE |
+                 MemoryRegion.JAILHOUSE_MEM_EXECUTE |
+                 MemoryRegion.JAILHOUSE_MEM_DMA))
 
     def is_comm_region(self):
         return (self.flags & MemoryRegion.JAILHOUSE_MEM_COMM_REGION) != 0
