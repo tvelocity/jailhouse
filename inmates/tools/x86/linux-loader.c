@@ -28,6 +28,8 @@ struct setup_data {
 	u32	type;
 	u32	length;
 	u16	pm_timer_address;
+	u16	num_cpus;
+	u8	cpu_ids[SMP_MAX_CPUS];
 };
 
 void inmate_main(void)
@@ -43,6 +45,10 @@ void inmate_main(void)
 
 	setup_data = (struct setup_data *)boot_params->setup_data;
 	setup_data->pm_timer_address = comm_region->pm_timer_address;
+	setup_data->num_cpus = comm_region->num_cpus;
+
+	smp_wait_for_all_cpus();
+	memcpy(setup_data->cpu_ids, smp_cpu_ids, SMP_MAX_CPUS);
 
 	entry = kernel + 0x200;
 	entry(0, boot_params);

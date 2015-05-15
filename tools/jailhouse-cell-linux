@@ -191,8 +191,9 @@ class JailhouseCell:
         fcntl.ioctl(self.dev, JailhouseCell.JAILHOUSE_CELL_START, start)
 
 
-def gen_setup_data(config):
-    return struct.pack('8x4sI2x', 'JLHS', 2)
+def gen_setup_data():
+    MAX_CPUS = 255
+    return struct.pack('8x4sI4x', 'JLHS', 4 + MAX_CPUS) + bytearray(MAX_CPUS)
 
 
 # pretend to be part of the jailhouse tool
@@ -223,7 +224,7 @@ config = Config(args.config)
 
 zero_page = ZeroPage(args.kernel, args.initrd, config)
 
-setup_data = gen_setup_data(config)
+setup_data = gen_setup_data()
 
 zero_page.setup_header.setup_data = PARAMS_BASE + 0x1000
 zero_page.setup_header.cmd_line_ptr = \
