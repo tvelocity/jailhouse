@@ -44,6 +44,13 @@ struct per_cpu {
 	int shutdown_state;
 	bool failed;
 
+	/* Other CPUs can insert sgis into the pending array */
+	spinlock_t gic_lock;
+	struct pending_irq *pending_irqs;
+	struct pending_irq *first_pending;
+	/* Only GICv3: redistributor base */
+	void *gicr_base;
+
 	bool flush_vcpu_caches;
 } __attribute__((aligned(PAGE_SIZE)));
 
@@ -65,6 +72,14 @@ static inline struct per_cpu *per_cpu(unsigned int cpu)
 {
 	return NULL;
 }
+
+static inline struct registers *guest_regs(struct per_cpu *cpu_data)
+{
+	return NULL;
+}
+
+unsigned int arm_cpu_phys2virt(unsigned int cpu_id);
+unsigned int arm_cpu_virt2phys(struct cell *cell, unsigned int virt_id);
 
 #endif /* !__ASSEMBLY__ */
 

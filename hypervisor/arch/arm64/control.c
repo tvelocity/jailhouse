@@ -80,6 +80,10 @@ struct registers* arch_handle_exit(struct per_cpu *cpu_data,
 		arch_handle_el2_trap(cpu_data, regs);
 		break;
 
+	case EXIT_REASON_EL2_IRQ:
+		irqchip_handle_irq(cpu_data);
+		break;
+
 	case EXIT_REASON_EL1_ABORT:
 		arch_handle_trap(cpu_data, regs);
 		break;
@@ -117,4 +121,27 @@ void __attribute__((noreturn)) arch_panic_stop(void)
 
 void arch_panic_park(void)
 {
+}
+
+/*
+ * Stubs used by ARM code (i.e. the GIC)
+ */
+
+void arch_handle_sgi(struct per_cpu *cpu_data, u32 irqn)
+{
+}
+
+unsigned int arm_cpu_virt2phys(struct cell *cell, unsigned int virt_id)
+{
+	return -EINVAL;
+}
+
+unsigned int arm_cpu_phys2virt(unsigned int cpu_id)
+{
+	return -EINVAL;
+}
+
+bool arch_handle_phys_irq(struct per_cpu *cpu_data, u32 irqn)
+{
+	return false;
 }
