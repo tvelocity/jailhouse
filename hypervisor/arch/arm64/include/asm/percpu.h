@@ -29,6 +29,12 @@
 #include <asm/spinlock.h>
 
 struct per_cpu {
+	u8 stack[PAGE_SIZE];
+	unsigned long linux_sp;
+	unsigned long linux_ret;
+	unsigned long linux_flags;
+	unsigned long linux_reg[NUM_ENTRY_REGS];
+
 	/* common fields */
 	unsigned int cpu_id;
 	struct cell *cell;
