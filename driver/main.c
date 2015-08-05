@@ -228,8 +228,8 @@ static int jailhouse_cmd_enable(struct jailhouse_system __user *arg)
 	    config_size >= hv_mem->size - hv_core_and_percpu_size)
 		goto error_release_fw;
 
-	hypervisor_mem = jailhouse_ioremap(hv_mem->phys_start, JAILHOUSE_BASE,
-					   hv_mem->size);
+	hypervisor_mem = jailhouse_ioremap(hv_mem->phys_start,
+					   JAILHOUSE_IOMAP_ADDR, hv_mem->size);
 	if (!hypervisor_mem) {
 		pr_err("jailhouse: Unable to map RAM reserved for hypervisor "
 		       "at %08lx\n", (unsigned long)hv_mem->phys_start);
@@ -251,6 +251,7 @@ static int jailhouse_cmd_enable(struct jailhouse_system __user *arg)
 	}
 
 	if (config->debug_uart.flags & JAILHOUSE_MEM_IO) {
+#if JAILHOUSE_BASE == JAILHOUSE_IOMAP_ADDR
 		uart = ioremap(config->debug_uart.phys_start,
 			       config->debug_uart.size);
 		if (!uart) {
@@ -263,6 +264,10 @@ static int jailhouse_cmd_enable(struct jailhouse_system __user *arg)
 		/* The hypervisor has no notion of address spaces, so we need
 		 * to enforce conversion. */
 		header->debug_uart_base = (void * __force)uart;
+#else
+		header->debug_uart_base = (void *)
+						config->debug_uart.phys_start;
+#endif
 	}
 
 	err = jailhouse_cell_prepare_root(&config->root_cell);
