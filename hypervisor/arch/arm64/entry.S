@@ -74,6 +74,10 @@ el2_return:
 	stp	xzr, xzr, [sp, #-16]!
 	sub	x29, x2, #16
 
+	/* install jailhouse vectors */
+	ldr	x2, =hyp_vectors
+	msr	vbar_el2, x2
+
 	/* Call entry(cpuid, struct per_cpu*) */
 	bl	entry
 
