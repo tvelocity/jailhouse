@@ -22,6 +22,7 @@
 #define MAX_PENDING_IRQS	(PAGE_SIZE / sizeof(struct pending_irq))
 
 #include <jailhouse/mmio.h>
+#include <jailhouse/cell.h>
 #include <asm/percpu.h>
 #include <asm/traps.h>
 
