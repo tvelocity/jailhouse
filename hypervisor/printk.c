@@ -15,6 +15,7 @@
 #include <jailhouse/processor.h>
 #include <jailhouse/string.h>
 #include <asm/spinlock.h>
+#include <asm/bitops.h>
 
 volatile unsigned long panic_in_progress;
 unsigned int panic_cpu = -1;
