@@ -16,6 +16,7 @@
 #include <jailhouse/paging.h>
 #include <jailhouse/control.h>
 #include <jailhouse/string.h>
+#include <jailhouse/cell.h>
 #include <generated/version.h>
 #include <asm/spinlock.h>
 
