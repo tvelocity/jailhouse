@@ -17,7 +17,7 @@ KBUILD_AFLAGS := $(filter-out -include asm/unified.h,$(KBUILD_AFLAGS))
 always := built-in.o
 
 obj-y += setup.o control.o mmio.o ../arm/lib.o
-obj-y += entry.o caches.o
+obj-y += entry.o caches.o exception.o traps.o
 obj-y += ../arm/mmu_cell.o ../arm/paging.o
 obj-y += ../arm/dbg-write.o
 

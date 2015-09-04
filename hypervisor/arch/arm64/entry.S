@@ -59,6 +59,10 @@ el2_entry:
 	stp	xzr, xzr, [sp, #-16]!
 	sub	x29, x2, #16
 
+	/* install jailhouse vectors */
+	ldr	x2, =hyp_vectors
+	msr	vbar_el2, x2
+
 	/* enable temporary mmu mappigns for early initialization */
 	ldr	x0, =bootstrap_pt_l1
 	bl	enable_mmu_el2

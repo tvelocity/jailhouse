@@ -28,6 +28,8 @@
 #include <asm/cell.h>
 #include <asm/spinlock.h>
 
+struct pending_irq;
+
 struct per_cpu {
 	u8 stack[PAGE_SIZE];
 
