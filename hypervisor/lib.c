@@ -13,6 +13,7 @@
 #include <jailhouse/string.h>
 #include <jailhouse/types.h>
 
+__attribute__((weak))
 void *memset(void *s, int c, unsigned long n)
 {
 	u8 *p = s;
@@ -22,6 +23,7 @@ void *memset(void *s, int c, unsigned long n)
 	return s;
 }
 
+__attribute__((weak))
 int strcmp(const char *s1, const char *s2)
 {
 	while (*s1 == *s2) {
@@ -31,4 +33,17 @@ int strcmp(const char *s1, const char *s2)
 		s2++;
 	}
 	return *(unsigned char *)s1 - *(unsigned char *)s2;
+}
+
+__attribute__ ((weak))
+void *memcpy(void *dest, const void *src, unsigned long n)
+{
+	unsigned long i;
+	const char *csrc = src;
+	char *cdest = dest;
+
+	for (i = 0; i < n; i++)
+		cdest[i] = csrc[i];
+
+	return dest;
 }
