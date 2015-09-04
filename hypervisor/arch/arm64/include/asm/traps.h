@@ -22,11 +22,19 @@ enum trap_return {
 };
 
 struct trap_context {
+	unsigned long *regs;
+	u64 esr;
+	u64 cpsr;
+	u64 pc;
 };
+
+typedef int (*trap_handler)(struct trap_context *ctx);
 
 void access_cell_reg(struct trap_context *ctx, u8 reg, unsigned long *val,
 		     bool is_read);
 void arch_skip_instruction(struct trap_context *ctx);
+
+int arch_handle_dabt(struct trap_context *ctx);
 
 #endif /* !__ASSEMBLY__ */
 #endif /* !_JAILHOUSE_ASM_TRAPS_H */
