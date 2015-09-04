@@ -37,6 +37,8 @@
  */
 
 #define JAILHOUSE_BASE		__MAKE_UL(0xfffffffff0000000)
+#define JAILHOUSE_IOMAP_ADDR	JAILHOUSE_BASE
+#define JAILHOUSE_IDENT_MAPPED	0
 
 /*
  * As this is never called on a CPU without VM extensions,

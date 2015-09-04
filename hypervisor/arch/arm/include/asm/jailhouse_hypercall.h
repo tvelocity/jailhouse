@@ -37,6 +37,8 @@
  */
 
 #define JAILHOUSE_BASE			0xf0000000
+#define JAILHOUSE_IOMAP_ADDR		JAILHOUSE_BASE
+#define JAILHOUSE_IDENT_MAPPED		0
 
 #define JAILHOUSE_CALL_INS		".arch_extension virt\n\t" \
 					"hvc #0x4a48"
