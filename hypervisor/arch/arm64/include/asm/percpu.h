@@ -25,6 +25,7 @@
 
 #ifndef __ASSEMBLY__
 
+#include <jailhouse/printk.h>
 #include <asm/cell.h>
 #include <asm/spinlock.h>
 
@@ -39,6 +40,13 @@ struct per_cpu {
 	u32 stats[JAILHOUSE_NUM_CPU_STATS];
 	int shutdown_state;
 	bool failed;
+
+	/* Other CPUs can insert sgis into the pending array */
+	spinlock_t gic_lock;
+	struct pending_irq *pending_irqs;
+	struct pending_irq *first_pending;
+	/* Only GICv3: redistributor base */
+	void *gicr_base;
 
 	bool flush_vcpu_caches;
 } __attribute__((aligned(PAGE_SIZE)));
@@ -66,6 +74,9 @@ static inline struct per_cpu *per_cpu(unsigned int cpu)
 
 	return (struct per_cpu *)(__page_pool + (cpu << PERCPU_SIZE_SHIFT));
 }
+
+unsigned int arm_cpu_phys2virt(unsigned int cpu_id);
+unsigned int arm_cpu_virt2phys(struct cell *cell, unsigned int virt_id);
 
 #endif /* !__ASSEMBLY__ */
 
