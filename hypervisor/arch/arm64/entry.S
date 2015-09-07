@@ -97,7 +97,21 @@ el2_entry:
 
 	.globl arch_cpu_activate_vmm
 arch_cpu_activate_vmm:
-	b	.
+	/* reset the stack and restore pre-entry context */
+	add	x0, x0, #(PERCPU_STACK_END - 12 * 8)
+	mov	sp, x0
+
+	ldp	x29, x30, [sp], #16
+	ldp	x27, x28, [sp], #16
+	ldp	x25, x26, [sp], #16
+	ldp	x23, x24, [sp], #16
+	ldp	x21, x22, [sp], #16
+	ldp	x19, x20, [sp], #16
+
+	/* return to the caller in Linux in EL1 */
+	msr	elr_el2, x30
+	mov	x0, xzr
+	eret
 
 	.globl enable_mmu_el2
 enable_mmu_el2:

@@ -24,8 +24,14 @@ int arch_init_early(void)
 int arch_cpu_init(struct per_cpu *cpu_data)
 {
 	int err = 0;
+	/* AARCH64_TODO: enable caches (HCR_ID_BIT, HCR_CD_BIT) */
+	unsigned long hcr = HCR_VM_BIT | HCR_IMO_BIT | HCR_FMO_BIT
+				| HCR_TSC_BIT | HCR_TAC_BIT | HCR_RW_BIT;
 
 	enable_mmu_el2(hv_paging_structs.root_table);
+
+	/* Setup guest traps */
+	arm_write_sysreg(HCR_EL2, hcr);
 
 	err = arch_mmu_cpu_cell_init(cpu_data);
 	if (err)
