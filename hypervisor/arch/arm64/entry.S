@@ -52,6 +52,10 @@ el2_entry:
 	cmp	x1, #0x16
 	b.ne	.		/* not hvc */
 
+	/* install jailhouse vectors */
+	ldr	x1, =hyp_vectors
+	msr	vbar_el2, x1
+
 	/* enable temporary mmu mappigns for early initialization */
 	ldr	x0, =bootstrap_pt_l1
 	bl	enable_mmu_el2
