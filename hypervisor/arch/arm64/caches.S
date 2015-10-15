@@ -17,7 +17,11 @@
 
 	.global arch_cpu_icache_flush
 arch_cpu_icache_flush:
-	b	.
+	dsb	sy	/* sync all writes before issuing ic instruction */
+	ic	iallu	/* invalidate all icaches to PoU for the local CPU */
+	dsb	sy	/* block until ic is fully completed */
+	isb		/* flush CPU pipeline */
+	ret
 
 /* Paramaters:
  *      x0: 0 - clean
