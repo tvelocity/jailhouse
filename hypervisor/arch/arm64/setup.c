@@ -86,8 +86,34 @@ int arch_unmap_device(void *vaddr, unsigned long size)
 			PAGING_NON_COHERENT);
 }
 
+/* disable the hypervisor on the current CPU */
+void arch_shutdown_self(struct per_cpu *cpu_data)
+{
+	irqchip_cpu_shutdown(cpu_data);
+
+	/* Free the guest */
+	arm_write_sysreg(HCR_EL2, HCR_RW_BIT);
+	arm_write_sysreg(VTCR_EL2, VTCR_RES1);
+
+	/* Remove stage-2 mappings */
+	arch_cpu_tlb_flush(cpu_data);
+
+	/* TLB flush needs the cell's VMID */
+	isb();
+	arm_write_sysreg(VTTBR_EL2, 0);
+
+	/* Return to EL1 */
+	arch_shutdown_mmu(cpu_data);
+}
+
 void arch_cpu_restore(struct per_cpu *cpu_data, int return_code)
 {
-	trace_error(-EINVAL);
-	while (1);
+	struct registers *regs = guest_regs(cpu_data);
+
+	/* Jailhouse initialization failed; return to the caller in EL1 */
+	arm_write_sysreg(ELR_EL2, regs->usr[30]);
+
+	regs->usr[0] = return_code;
+
+	arch_shutdown_self(cpu_data);
 }
