@@ -57,8 +57,13 @@ unsigned long arch_paging_gphys2phys(struct per_cpu *cpu_data,
 
 int arch_mmu_cell_init(struct cell *cell)
 {
-	cell->arch.mm.root_paging = hv_paging;
-	cell->arch.mm.root_table = page_alloc(&mem_pool, 1);
+	if (get_cpu_parange() < 39)
+		return trace_error(-EINVAL);
+
+	cell->arch.mm.root_paging = cell_paging;
+	cell->arch.mm.root_table =
+		page_alloc_aligned(&mem_pool, ARM_CELL_ROOT_PT_SZ);
+
 	if (!cell->arch.mm.root_table)
 		return -ENOMEM;
 
@@ -67,7 +72,7 @@ int arch_mmu_cell_init(struct cell *cell)
 
 void arch_mmu_cell_destroy(struct cell *cell)
 {
-	page_free(&mem_pool, cell->arch.mm.root_table, 1);
+	page_free(&mem_pool, cell->arch.mm.root_table, ARM_CELL_ROOT_PT_SZ);
 }
 
 int arch_mmu_cpu_cell_init(struct per_cpu *cpu_data)
@@ -76,6 +81,11 @@ int arch_mmu_cpu_cell_init(struct per_cpu *cpu_data)
 	unsigned long cell_table = paging_hvirt2phys(cell->arch.mm.root_table);
 	u64 vttbr = 0;
 	u32 vtcr = VTCR_CELL;
+
+	/* We share page tables between CPUs, so we need to check
+	 * that all CPUs support the same PARange. */
+	if (cpu_parange != get_cpu_parange())
+		return trace_error(-EINVAL);
 
 	if (cell->id > 0xff) {
 		panic_printk("No cell ID available\n");

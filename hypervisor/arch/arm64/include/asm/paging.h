@@ -25,13 +25,9 @@
  * native page size. AArch64 also supports 4 levels of page tables, numbered
  * L0-3, while AArch32 supports only 3 levels numbered L1-3.
  *
- * Otherwise, the page table format is identical. By setting the TCR registers
- * appropriately, for 4Kb page tables and starting address translations from
- * level 1, we can use the same page tables and page table generation code that
- * we use on AArch64.
- *
- * This gives us 39 addressable bits for the moment.
- * AARCH64_TODO: implement 4 level page tables, different granule sizes.
+ * We currently only implement 4Kb granule size for the page tables.
+ * We support physical address ranges from 40 to 48 bits. We don't handle
+ * currently platforms with 32 or 36 bit physical address ranges.
  */
 
 #define PAGE_SHIFT		12
@@ -39,10 +35,9 @@
 #define PAGE_MASK		~(PAGE_SIZE - 1)
 #define PAGE_OFFS_MASK		(PAGE_SIZE - 1)
 
-#define MAX_PAGE_TABLE_LEVELS	3
+#define MAX_PAGE_TABLE_LEVELS	4
 
-#define T0SZ			(64 - 39)
-#define SL0			01
+#define L0_VADDR_MASK		BIT_MASK(47, 39)
 #define L1_VADDR_MASK		BIT_MASK(38, 30)
 #define L2_VADDR_MASK		BIT_MASK(29, 21)
 
@@ -83,11 +78,13 @@
  */
 #define PTE_TABLE_FLAGS		0x3
 
-#define PTE_L1_BLOCK_ADDR_MASK	BIT_MASK(39, 30)
-#define PTE_L2_BLOCK_ADDR_MASK	BIT_MASK(39, 21)
-#define PTE_TABLE_ADDR_MASK	BIT_MASK(39, 12)
-#define PTE_PAGE_ADDR_MASK	BIT_MASK(39, 12)
+#define PTE_L0_BLOCK_ADDR_MASK	BIT_MASK(47, 39)
+#define PTE_L1_BLOCK_ADDR_MASK	BIT_MASK(47, 30)
+#define PTE_L2_BLOCK_ADDR_MASK	BIT_MASK(47, 21)
+#define PTE_TABLE_ADDR_MASK	BIT_MASK(47, 12)
+#define PTE_PAGE_ADDR_MASK	BIT_MASK(47, 12)
 
+#define BLOCK_512G_VADDR_MASK	BIT_MASK(38, 0)
 #define BLOCK_1G_VADDR_MASK	BIT_MASK(29, 0)
 #define BLOCK_2M_VADDR_MASK	BIT_MASK(20, 0)
 
@@ -103,7 +100,16 @@
 
 #define TCR_EL2_RES1		((1 << 31) | (1 << 23))
 #define VTCR_RES1		((1 << 31))
+#define T0SZ(parange)		(64 - parange)
+#define SL0_L0			2
+#define SL0_L1			1
+#define SL0_L2			0
+#define TCR_PS_32B		0x0
+#define TCR_PS_36B		0x1
 #define TCR_PS_40B		0x2
+#define TCR_PS_42B		0x3
+#define TCR_PS_44B		0x4
+#define TCR_PS_48B		0x5
 #define TCR_RGN_NON_CACHEABLE	0x0
 #define TCR_RGN_WB_WA		0x1
 #define TCR_RGN_WT		0x2
@@ -118,15 +124,6 @@
 #define TCR_IRGN0_SHIFT		8
 #define TCR_SL0_SHIFT		6
 #define TCR_S_SHIFT		4
-
-/* AARCH64_TODO: we statically assume a 40 bit address space. Need to fix this,
- * along with the support for the 0th level page table available in AArch64 */
-#define VTCR_CELL		(T0SZ | SL0 << TCR_SL0_SHIFT		\
-				| (TCR_RGN_WB_WA << TCR_IRGN0_SHIFT)	\
-				| (TCR_RGN_WB_WA << TCR_ORGN0_SHIFT)	\
-				| (TCR_INNER_SHAREABLE << TCR_SH0_SHIFT)\
-				| (TCR_PS_40B << TCR_PS_SHIFT)		\
-				| VTCR_RES1)
 
 /*
  * Hypervisor memory attribute indexes:
@@ -172,6 +169,62 @@
 #ifndef __ASSEMBLY__
 
 typedef u64 *pt_entry_t;
+
+extern unsigned int cpu_parange;
+
+/* cpu_parange initialized in arch_paging_init */
+static inline unsigned int get_cpu_parange(void)
+{
+	unsigned long id_aa64mmfr0;
+
+	arm_read_sysreg(ID_AA64MMFR0_EL1, id_aa64mmfr0);
+
+	switch (id_aa64mmfr0 & 0xf) {
+	case TCR_PS_32B:
+		return 32;
+	case TCR_PS_36B:
+		return 36;
+	case TCR_PS_40B:
+		return 40;
+	case TCR_PS_42B:
+		return 42;
+	case TCR_PS_44B:
+		return 44;
+	case TCR_PS_48B:
+		return 48;
+	default:
+		return 0;
+	}
+}
+
+/* The size of the cpu_parange, determines from which level we can
+ * start from the S2 translations, and the size of the first level
+ * page table */
+#define T0SZ_CELL		T0SZ(cpu_parange)
+#define SL0_CELL		((cpu_parange >= 44) ? SL0_L0 : SL0_L1)
+#define ARM_CELL_ROOT_PT_SZ	((cpu_parange >= 44) ? 1 : \
+					(1 << (cpu_parange - 39)))
+
+/* Just match the host's PARange */
+#define TCR_PS_CELL					\
+	({ unsigned int ret = 0;			\
+	   switch (cpu_parange) {			\
+		case 32: ret = TCR_PS_32B; break;	\
+		case 36: ret = TCR_PS_36B; break;	\
+		case 40: ret = TCR_PS_40B; break;	\
+		case 42: ret = TCR_PS_42B; break;	\
+		case 44: ret = TCR_PS_44B; break;	\
+		case 48: ret = TCR_PS_48B; break;	\
+	   }						\
+	   ret; })
+
+#define VTCR_CELL		(T0SZ_CELL | (SL0_CELL << TCR_SL0_SHIFT)\
+				| (TCR_RGN_WB_WA << TCR_IRGN0_SHIFT)	\
+				| (TCR_RGN_WB_WA << TCR_ORGN0_SHIFT)	\
+				| (TCR_INNER_SHAREABLE << TCR_SH0_SHIFT)\
+				| (TCR_PS_CELL << TCR_PS_SHIFT)		\
+				| VTCR_RES1)
+
 
 /* Only executed on hypervisor paging struct changes */
 static inline void arch_paging_flush_page_tlbs(unsigned long page_addr)
