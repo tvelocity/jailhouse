@@ -139,11 +139,14 @@ static void enter_hypervisor(void *info)
 {
 	struct jailhouse_header *header = info;
 	unsigned int cpu = smp_processor_id();
+	int (*entry)(unsigned int);
 	int err;
+
+	entry = header->entry + (unsigned long) hypervisor_mem;
 
 	if (cpu < header->max_cpus)
 		/* either returns 0 or the same error code across all CPUs */
-		err = header->entry(cpu);
+		err = entry(cpu);
 	else
 		err = -EINVAL;
 
@@ -235,8 +238,9 @@ static int jailhouse_cmd_enable(struct jailhouse_system __user *arg)
 	    config_size >= hv_mem->size - hv_core_and_percpu_size)
 		goto error_release_fw;
 
-	hypervisor_mem = jailhouse_ioremap(hv_mem->phys_start, JAILHOUSE_BASE,
-					   hv_mem->size);
+	hypervisor_mem = jailhouse_ioremap(hv_mem->phys_start,
+					   JAILHOUSE_BORROW_ROOT_PT ?
+					   JAILHOUSE_BASE : 0, hv_mem->size);
 	if (!hypervisor_mem) {
 		pr_err("jailhouse: Unable to map RAM reserved for hypervisor "
 		       "at %08lx\n", (unsigned long)hv_mem->phys_start);
@@ -258,8 +262,12 @@ static int jailhouse_cmd_enable(struct jailhouse_system __user *arg)
 	}
 
 	if (config->debug_uart.flags & JAILHOUSE_MEM_IO) {
-		uart = ioremap(config->debug_uart.phys_start,
-			       config->debug_uart.size);
+		if (JAILHOUSE_BORROW_ROOT_PT)
+			uart = ioremap(config->debug_uart.phys_start,
+				       config->debug_uart.size);
+		else
+			uart = (void *)	config->debug_uart.phys_start;
+
 		if (!uart) {
 			err = -EINVAL;
 			pr_err("jailhouse: Unable to map hypervisor UART at "
@@ -294,7 +302,7 @@ static int jailhouse_cmd_enable(struct jailhouse_system __user *arg)
 		goto error_free_cell;
 	}
 
-	if (uart)
+	if (uart && JAILHOUSE_BORROW_ROOT_PT)
 		iounmap(uart);
 
 	release_firmware(hypervisor);
