@@ -78,8 +78,8 @@ int psci_wait_cpu_stopped(unsigned int cpu_id)
 static long psci_emulate_cpu_on(struct per_cpu *cpu_data,
 				struct trap_context *ctx)
 {
-	unsigned int target = ctx->regs[1];
-	unsigned int cpu;
+	unsigned long target = ctx->regs[1];
+	unsigned long cpu;
 	struct psci_mbox *mbox;
 
 	cpu = arm_cpu_virt2phys(cpu_data->cell, target);
@@ -154,10 +154,12 @@ long psci_dispatch(struct trap_context *ctx)
 		return 0;
 
 	case PSCI_CPU_ON_32:
+	case PSCI_CPU_ON_64:
 	case PSCI_CPU_ON_V0_1_UBOOT:
 		return psci_emulate_cpu_on(cpu_data, ctx);
 
 	case PSCI_AFFINITY_INFO_32:
+	case PSCI_AFFINITY_INFO_64:
 		return psci_emulate_affinity_info(cpu_data, ctx);
 
 	default:

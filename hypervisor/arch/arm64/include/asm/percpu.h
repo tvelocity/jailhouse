@@ -25,6 +25,7 @@
 
 #include <jailhouse/printk.h>
 #include <asm/cell.h>
+#include <asm/psci.h>
 #include <asm/spinlock.h>
 
 struct pending_irq;
@@ -48,6 +49,11 @@ struct per_cpu {
 	void *gicr_base;
 
 	bool flush_vcpu_caches;
+
+	__attribute__((aligned(16))) struct psci_mbox psci_mbox;
+	struct psci_mbox guest_mbox;
+
+	unsigned int virt_id;
 } __attribute__((aligned(PAGE_SIZE)));
 
 static inline struct per_cpu *this_cpu_data(void)
