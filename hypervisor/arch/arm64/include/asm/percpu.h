@@ -23,8 +23,11 @@
 
 #ifndef __ASSEMBLY__
 
+#include <jailhouse/printk.h>
 #include <asm/cell.h>
 #include <asm/spinlock.h>
+
+struct pending_irq;
 
 struct per_cpu {
 	u8 stack[PAGE_SIZE];
@@ -36,6 +39,13 @@ struct per_cpu {
 	u32 stats[JAILHOUSE_NUM_CPU_STATS];
 	int shutdown_state;
 	bool failed;
+
+	/* Other CPUs can insert sgis into the pending array */
+	spinlock_t gic_lock;
+	struct pending_irq *pending_irqs;
+	struct pending_irq *first_pending;
+	/* Only GICv3: redistributor base */
+	void *gicr_base;
 
 	bool flush_vcpu_caches;
 } __attribute__((aligned(PAGE_SIZE)));
