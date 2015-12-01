@@ -30,6 +30,18 @@
 
 struct pending_irq;
 
+union mpidr {
+	u64 val;
+	struct {
+		u8 aff0;
+		u8 aff1;
+		u8 aff2;
+		u8 pad1;
+		u8 aff3;
+		u8 pad2[3];
+	} f;
+};
+
 struct per_cpu {
 	u8 stack[PAGE_SIZE];
 	unsigned long saved_vectors;
@@ -54,6 +66,7 @@ struct per_cpu {
 	struct psci_mbox guest_mbox;
 
 	unsigned int virt_id;
+	union mpidr mpidr;
 } __attribute__((aligned(PAGE_SIZE)));
 
 static inline struct per_cpu *this_cpu_data(void)

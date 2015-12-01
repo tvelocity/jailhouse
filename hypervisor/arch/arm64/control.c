@@ -93,9 +93,6 @@ void arch_reset_self(struct per_cpu *cpu_data)
 	/* Wait for the driver to call cpu_up */
 	reset_address = psci_emulate_spin(cpu_data);
 
-	/* Set the new MPIDR */
-	arm_write_sysreg(VMPIDR_EL2, cpu_data->virt_id | MPIDR_MP_BIT);
-
 	/* Restore an empty context */
 	arch_reset_el1(regs);
 
@@ -184,6 +181,17 @@ void arch_handle_sgi(struct per_cpu *cpu_data, u32 irqn)
 	default:
 		printk("WARN: unknown SGI received %d\n", irqn);
 	}
+}
+
+unsigned int arm_cpu_by_mpid(struct cell *cell, unsigned long mpid)
+{
+	unsigned int cpu;
+
+	for_each_cpu(cpu, cell->cpu_set)
+		if (mpid == (per_cpu(cpu)->mpidr.val & 0xff00fffffful))
+			return cpu;
+
+	return -1;
 }
 
 unsigned int arm_cpu_virt2phys(struct cell *cell, unsigned int virt_id)

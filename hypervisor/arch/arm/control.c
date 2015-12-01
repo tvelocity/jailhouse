@@ -302,6 +302,17 @@ void arch_handle_sgi(struct per_cpu *cpu_data, u32 irqn)
 	}
 }
 
+unsigned int arm_cpu_by_mpid(struct cell *cell, unsigned long mpid)
+{
+	unsigned int cpu;
+
+	for_each_cpu(cpu, cell->cpu_set)
+		if (mpid == (per_cpu(cpu)->mpidr.val & 0xff00fffffful))
+			return cpu;
+
+	return -1;
+}
+
 unsigned int arm_cpu_virt2phys(struct cell *cell, unsigned int virt_id)
 {
 	unsigned int cpu;

@@ -32,6 +32,18 @@
 
 struct pending_irq;
 
+union mpidr {
+	u64 val;
+	struct {
+		u8 aff0;
+		u8 aff1;
+		u8 aff2;
+		u8 pad1;
+		u8 aff3;
+		u8 pad2[3];
+	} f;
+};
+
 struct per_cpu {
 	/* Keep these two in sync with defines above! */
 	u8 stack[PAGE_SIZE];
@@ -63,6 +75,7 @@ struct per_cpu {
 	bool flush_vcpu_caches;
 	int shutdown_state;
 	bool shutdown;
+	union mpidr mpidr;
 	bool failed;
 } __attribute__((aligned(PAGE_SIZE)));
 
