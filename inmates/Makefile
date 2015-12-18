@@ -15,6 +15,7 @@ export INMATES_LIB
 
 INCLUDES := -I$(INMATES_LIB) \
 	    -I$(src)/../hypervisor/arch/$(SRCARCH)/include \
+	    -I$(src)/../hypervisor/arch/arm/include \
 	    -I$(src)/../hypervisor/include
 
 LINUXINCLUDE  :=
