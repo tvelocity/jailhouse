@@ -126,6 +126,48 @@ restart:
 }
 
 /**
+ * Allocate consecutive and aligned pages from the specified pool.
+ * Pages will be aligned to num * PAGE_SIZE
+ * @param pool	Page pool to allocate from.
+ * @param num	Number of pages.
+ *
+ * @return Pointer to first page or NULL if allocation failed.
+ *
+ * @see page_free
+ */
+void *page_alloc_aligned(struct page_pool *pool, unsigned int num)
+{
+	unsigned int offset;
+	unsigned long start, next, i;
+
+	/* the pool itself might not be aligned to our desired size */
+	offset = (- (unsigned long) pool->base_address / PAGE_SIZE) % num;
+	next = offset;
+
+	while ((start = find_next_free_page(pool, next)) != INVALID_PAGE_NR) {
+
+		if ((start - offset) % num)
+			goto next_chunk;
+
+		for (i = start; i < start + num; i++)
+			if (test_bit(i, pool->used_bitmap))
+				goto next_chunk;
+
+		for (i = start; i < start + num; i++)
+			set_bit(i, pool->used_bitmap);
+
+		pool->used_pages += num;
+
+		return pool->base_address + start * PAGE_SIZE;
+
+next_chunk:
+		next += num - (start - offset) % num;
+	}
+
+	return NULL;
+}
+
+/**
  * Release pages to the specified pool.
  * @param pool	Page pool to release to.
  * @param page	Address of first page.
