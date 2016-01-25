@@ -66,7 +66,7 @@ el2_entry:
 	msr	vbar_el2, x1
 
 	/* enable temporary mmu mappigns for early initialization */
-	ldr	x0, =bootstrap_pt_l1
+	ldr	x0, =bootstrap_pt_l0
 	bl	enable_mmu_el2
 
 	mov	x0, x17		/* preserved cpuid, will be passed to entry */
@@ -122,11 +122,11 @@ enable_mmu_el2:
 	 * We should think what hw configuration we support by one instance of
 	 * the hypervisor and choose Inner or Outter sharable domain.
 	 */
-	ldr	x1, =(T0SZ | (TCR_RGN_WB_WA << TCR_IRGN0_SHIFT)		\
-			   | (TCR_RGN_WB_WA << TCR_ORGN0_SHIFT)		\
-			   | (TCR_INNER_SHAREABLE << TCR_SH0_SHIFT)	\
-			   | (TCR_PS_40B << TCR_PS_SHIFT)		\
-			   | TCR_EL2_RES1)
+	ldr	x1, =(T0SZ(48) | (TCR_RGN_WB_WA << TCR_IRGN0_SHIFT)	\
+			       | (TCR_RGN_WB_WA << TCR_ORGN0_SHIFT)	\
+			       | (TCR_INNER_SHAREABLE << TCR_SH0_SHIFT)\
+			       | (TCR_PS_48B << TCR_PS_SHIFT)		\
+			       | TCR_EL2_RES1)
 	msr	tcr_el2, x1
 
 	msr	ttbr0_el2, x0
@@ -149,8 +149,32 @@ enable_mmu_el2:
  * we set up the final EL2 page tables.
  */
 .align 12
-bootstrap_pt_l1:
+bootstrap_pt_l0:
 	addr = 0
+	blk_sz = 1 << 39
+        .rept 512
+	.if (addr >> 39) == (UART_BASE >> 39)
+        .quad bootstrap_pt_l1_uart + PTE_TABLE_FLAGS
+	.else
+	.if (addr >> 39) == (JAILHOUSE_BASE >> 39)
+        .quad bootstrap_pt_l1 + PTE_TABLE_FLAGS
+	.else
+        .quad 0
+	.endif
+	.endif
+	addr = addr + blk_sz
+        .endr
+bootstrap_pt_l1:
+#if (JAILHOUSE_BASE >> 39) != (UART_BASE)
+	addr = JAILHOUSE_BASE & ~((1 << 39) - 1)
+	blk_sz = 1 << 30
+        .rept 512
+        .quad addr | PAGE_DEFAULT_FLAGS
+	addr = addr + blk_sz
+        .endr
+#endif
+bootstrap_pt_l1_uart:
+	addr = UART_BASE & ~((1 << 39) - 1)
 	blk_sz = 1 << 30
         .rept 512
 	.if (addr ^ UART_BASE) >> 30
