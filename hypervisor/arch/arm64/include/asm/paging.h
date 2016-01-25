@@ -238,7 +238,20 @@ static inline void arch_paging_flush_page_tlbs(unsigned long page_addr)
 /* Used to clean the PAGE_MAP_COHERENT page table changes */
 static inline void arch_paging_flush_cpu_caches(void *addr, long size)
 {
-	/* AARCH64_TODO */
+	unsigned int cache_line_size;
+	u64 ctr;
+
+	arm_read_sysreg(CTR_EL0, ctr);
+	/* Extract the minimal cache line size */
+	cache_line_size = 4 << (ctr >> 16 & 0xf);
+
+	do {
+		/* Clean & invalidate by MVA to PoC */
+		asm volatile ("dc civac, %0" : : "r" (addr));
+		size -= cache_line_size;
+		addr += cache_line_size;
+	} while (size > 0);
+
 }
 
 #endif /* !__ASSEMBLY__ */
