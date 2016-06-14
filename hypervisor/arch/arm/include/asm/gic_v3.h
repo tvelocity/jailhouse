@@ -15,6 +15,8 @@
 
 #include <asm/sysregs.h>
 
+#define GICD_IROUTER		0x6000
+
 #define GICD_CIDR0		0xfff0
 #define GICD_CIDR1		0xfff4
 #define GICD_CIDR2		0xfff8
@@ -261,6 +263,7 @@ static inline u32 gic_read_iar(void)
 }
 
 void gicv3_handle_sgir_write(u64 sgir);
+enum mmio_result handle_irq_route(struct mmio_access *mmio, unsigned int irq);
 
 #endif /* __ASSEMBLY__ */
 #endif /* _JAILHOUSE_ASM_GIC_V3_H */

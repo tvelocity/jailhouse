@@ -33,7 +33,6 @@
 #define GICD_SGIR			0x0f00
 #define GICD_CPENDSGIR			0x0f10
 #define GICD_SPENDSGIR			0x0f20
-#define GICD_IROUTER			0x6000
 
 #define GICD_PIDR2_ARCH(pidr)		(((pidr) & 0xf0) >> 4)
 
