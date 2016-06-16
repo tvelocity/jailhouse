@@ -57,18 +57,22 @@ restrict_bitmask_access(struct mmio_access *mmio, unsigned int reg_index,
 	/* First, extract the first interrupt affected by this access */
 	unsigned int first_irq = reg_index * irqs_per_reg;
 
-	/* For SGIs or PPIs, let the caller do the mmio access */
 	if (!is_spi(first_irq)) {
-		mmio_perform_access(gicd_base, mmio);
-		return MMIO_HANDLED;
-	}
-
-	/* For SPIs, compare against the cell config mask */
-	first_irq -= 32;
-	for (spi = first_irq; spi < first_irq + irqs_per_reg; spi++) {
-		unsigned int bit_nr = (spi - first_irq) * bits_per_irq;
-		if (spi_in_cell(cell, spi))
-			access_mask |= spi_bits << bit_nr;
+		/*
+		 * For SGIs or PPIs, let the caller do the mmio access, except
+		 * for the hypervisor used SGIs and the maintenance PPI.
+		 */
+		access_mask = 0xffffffff & ~((1 << SGI_INJECT) |
+					     (1 << SGI_CPU_OFF) |
+					     (1 << MAINTENANCE_IRQ));
+	} else {
+		/* For SPIs, compare against the cell config mask */
+		first_irq -= 32;
+		for (spi = first_irq; spi < first_irq + irqs_per_reg; spi++) {
+			unsigned int bit_nr = (spi - first_irq) * bits_per_irq;
+			if (spi_in_cell(cell, spi))
+				access_mask |= spi_bits << bit_nr;
+		}
 	}
 
 	if (!mmio->is_write) {
